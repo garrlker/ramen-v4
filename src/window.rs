@@ -1,3 +1,5 @@
+use crate::{error::Error, platform};
+
 pub struct WindowBuilder {
     _a: (),
 }
@@ -9,21 +11,17 @@ impl WindowBuilder {
         }
     }
 
-    pub fn build() -> Window {
-        Window::build()
+    pub fn build(&self) -> Result<Window, Error> {
+        platform::imp::WindowImpl::new(self).map(|imp| Window { imp })
     }
 }
 
 pub struct Window {
-    _a: (),
+    imp: platform::imp::WindowImpl,
 }
 
 impl Window {
     pub const fn builder() -> WindowBuilder {
         WindowBuilder::new()
-    }
-
-    fn build() -> Self {
-        todo!()
     }
 }
