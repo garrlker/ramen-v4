@@ -1,12 +1,14 @@
-use crate::{error::Error, window::WindowBuilder};
+//! Win32-specific definitions and API extensions.
 
-pub(crate) struct WindowImpl {
+mod ffi;
+mod imp;
+mod util;
 
-}
+// public re-exports
+pub use self::{
+    ffi::{HINSTANCE, HWND},
+    util::base_hinstance,
+};
 
-impl WindowImpl {
-    pub(crate) fn new(builder: &WindowBuilder) -> Result<Self, Error> {
-        let _ = builder;
-        todo!()
-    }
-}
+// platform `imp` glue
+pub(crate) use imp::WindowImpl;
