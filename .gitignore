@@ -1,2 +1,6 @@
-/target
-Cargo.lock
+# cargo stuff
+/Cargo.lock
+/target/
+
+# local testing
+/src/bin/
