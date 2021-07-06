@@ -2,6 +2,7 @@
 
 pub mod error;
 pub mod platform;
+pub mod sync;
 pub mod window;
 
 #[cfg(test)]
