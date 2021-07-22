@@ -1,3 +1,1 @@
-pub struct Error {
-
-}
+pub struct Error {}

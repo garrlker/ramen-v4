@@ -93,19 +93,28 @@ pub fn str_to_wstr(src: &str, buffer: &mut Vec<WCHAR>) -> *const WCHAR {
 
         // calculate buffer size
         let req_buffer_size = MultiByteToWideChar(
-            CP_UTF8, 0,
-            str_ptr, str_len,
-            ptr::null_mut(), 0, // `lpWideCharStr == NULL` means query size
-        ) as usize + 1; // +1 for null terminator
+            CP_UTF8,
+            0,
+            str_ptr,
+            str_len,
+            ptr::null_mut(),
+            0, // `lpWideCharStr == NULL` means query size
+        ) as usize;
+
+        // +1 for null terminator
+        let req_buffer_size = req_buffer_size + 1;
 
         // ensure buffer capacity
         buffer.reserve(req_buffer_size);
 
         // write to our buffer
         let chars_written = MultiByteToWideChar(
-            CP_UTF8, 0,
-            str_ptr, str_len,
-            buffer.as_mut_ptr(), req_buffer_size as c_int,
+            CP_UTF8,
+            0,
+            str_ptr,
+            str_len,
+            buffer.as_mut_ptr(),
+            req_buffer_size as c_int,
         ) as usize;
 
         // drop sanitized buffer, if at all allocated

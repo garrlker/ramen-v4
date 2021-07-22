@@ -1,12 +1,10 @@
+//! stuff
+
+// TODO: unglob
 use crate::{
     error::Error,
-    platform::win32::{
-        // TODO unglob
-        ffi::*,
-        util,
-        WindowBuilderExt,
-    },
-    sync::{Condvar, LazyCell, Mutex, cvar_notify_one, cvar_wait, mutex_lock},
+    platform::win32::{ffi::*, util, WindowBuilderExt},
+    sync::{cvar_notify_one, cvar_wait, mutex_lock, Condvar, LazyCell, Mutex},
     window::WindowBuilder,
 };
 use std::{mem, ptr, sync::Arc, thread};
@@ -64,7 +62,8 @@ impl WindowImpl {
                 util::base_hinstance(),
                 thread_params.class_name,
                 class_info.as_mut_ptr(),
-            ) == FALSE {
+            ) == FALSE
+            {
                 // The window class not existing sets the thread global error flag, but it's okay
                 SetLastError(ERROR_SUCCESS);
 
@@ -120,11 +119,6 @@ impl WindowImpl {
     }
 }
 
-pub unsafe extern "system" fn window_proc(
-    hwnd: HWND,
-    msg: UINT,
-    wparam: WPARAM,
-    lparam: LPARAM,
-) -> LRESULT {
+pub unsafe extern "system" fn window_proc(hwnd: HWND, msg: UINT, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     DefWindowProcW(hwnd, msg, wparam, lparam)
 }

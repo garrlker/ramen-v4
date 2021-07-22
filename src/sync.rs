@@ -4,8 +4,8 @@
 
 #[cfg(not(feature = "parking-lot"))]
 mod sync {
-    pub use std::sync::{Condvar, Mutex, MutexGuard};
     use std::ptr;
+    pub use std::sync::{Condvar, Mutex, MutexGuard};
 
     #[inline]
     pub fn cvar_notify_one(cvar: &Condvar) {
@@ -84,9 +84,7 @@ impl<T, F: FnOnce() -> T> LazyCell<T, F> {
         });
 
         // SAFETY: A call to `call_once` initialized the pointer
-        unsafe {
-            &**self.ptr.get()
-        }
+        unsafe { &**self.ptr.get() }
     }
 }
 
