@@ -7,7 +7,14 @@ use crate::{
     sync::{cvar_notify_one, cvar_wait, mutex_lock, Condvar, LazyCell, Mutex},
     window::WindowBuilder,
 };
-use std::{mem, ptr, sync::Arc, thread};
+use std::{
+    cell, mem, ptr,
+    sync::{
+        atomic::{self, AtomicBool},
+        Arc,
+    },
+    thread,
+};
 
 /* API extensions */
 
@@ -20,6 +27,11 @@ impl WindowBuilderExt for WindowBuilder {
 
 pub(crate) struct WindowImpl {
     thread: Option<thread::JoinHandle<()>>,
+}
+
+/// State accessible from `window_proc`, living on the thread stack.
+struct WindowImplUserData {
+    destroy_flag: AtomicBool,
 }
 
 /// Sent to `thread::spawn` as a nice package.
@@ -94,13 +106,23 @@ impl WindowImpl {
             }
             mem::drop(class_registry_lock);
 
+            let user_data = cell::UnsafeCell::new(WindowImplUserData {
+                destroy_flag: AtomicBool::new(false),
+            });
+
             let hwnd: HWND = ptr::null_mut();
 
-            // If we're the thread that created the class, we have to set some properties for it
+            // If we're the thread that created the class, we have to manipulate the storage a bit
             // Unfortunately the API doesn't allow you to do this until you have a window handle
             if class_created_this_thread {
                 let _ = util::set_class_data(hwnd, 0, RAMEN_WINDOW_MARKER as usize);
             }
+
+            let hhook = SetWindowsHookExW(WH_CBT, hcbt_destroywnd_hookproc, ptr::null_mut(), GetCurrentThreadId());
+
+            // ...
+
+            UnhookWindowsHookEx(hhook);
         });
 
         /* Wait for the thread to return the window or an error */
@@ -116,6 +138,33 @@ impl WindowImpl {
                 cvar_wait(&cvar, &mut lock);
             }
         }
+    }
+}
+
+unsafe fn user_data<'a>(hwnd: HWND) -> &'a mut WindowImplUserData {
+    &mut *(util::get_window_data(hwnd, 0) as *mut WindowImplUserData)
+}
+
+// TODO explain
+unsafe extern "system" fn hcbt_destroywnd_hookproc(code: c_int, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
+    if code == HCBT_DESTROYWND {
+        let hwnd = wparam as HWND;
+        if util::get_class_data(hwnd, GCL_CBCLSEXTRA) == mem::size_of::<usize>() &&
+            (util::get_class_data(hwnd, 0) as u32) == RAMEN_WINDOW_MARKER
+        {
+            // Note that nothing is forwarded here, we decide for ramen's windows
+            if user_data(hwnd).destroy_flag.load(atomic::Ordering::Acquire) {
+                0 // Allow
+            } else {
+                1 // Prevent
+            }
+        } else {
+            // Unrelated window, forward
+            CallNextHookEx(ptr::null_mut(), code, wparam, lparam)
+        }
+    } else {
+        // Unrelated event, forward
+        CallNextHookEx(ptr::null_mut(), code, wparam, lparam)
     }
 }
 

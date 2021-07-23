@@ -54,6 +54,7 @@ pub enum HWND__ {}
 /* other winapi types */
 
 pub type ATOM = WORD;
+pub type HOOKPROC = unsafe extern "system" fn(c_int, WPARAM, LPARAM) -> LRESULT;
 pub type LPARAM = LONG_PTR;
 pub type LRESULT = LONG_PTR;
 pub type WPARAM = UINT_PTR;
@@ -132,6 +133,9 @@ pub const CP_UTF8: DWORD = 65001;
 pub const CS_OWNDC: UINT = 0x0020;
 pub const ERROR_SUCCESS: DWORD = 0; // lol
 pub const FALSE: BOOL = 0;
+pub const GCL_CBCLSEXTRA: c_int = -20;
+pub const HCBT_DESTROYWND: c_int = 4;
+pub const WH_CBT: c_int = 5;
 
 /* static linked functions */
 
@@ -139,6 +143,8 @@ pub const FALSE: BOOL = 0;
 extern "system" {
     pub fn GetLastError() -> DWORD;
     pub fn SetLastError(dwErrCode: DWORD);
+
+    pub fn GetCurrentThreadId() -> DWORD;
 
     pub fn MultiByteToWideChar(
         CodePage: UINT,
@@ -209,4 +215,9 @@ extern "system" {
     pub fn DefWindowProcW(hWnd: HWND, Msg: UINT, wParam: WPARAM, lParam: LPARAM) -> LRESULT;
     pub fn DispatchMessageW(lpmsg: *const MSG) -> LRESULT;
     pub fn PostQuitMessage(nExitCode: c_int);
+
+    // Window message hooking api
+    pub fn CallNextHookEx(hhk: HHOOK, nCode: c_int, wParam: WPARAM, lParam: LPARAM) -> LRESULT;
+    pub fn SetWindowsHookExW(idHook: c_int, lpfn: HOOKPROC, hmod: HINSTANCE, dwThreadId: DWORD) -> HHOOK;
+    pub fn UnhookWindowsHookEx(hhk: HHOOK) -> BOOL;
 }
