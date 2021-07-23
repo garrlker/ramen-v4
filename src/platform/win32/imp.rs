@@ -118,11 +118,16 @@ impl WindowImpl {
                 let _ = util::set_class_data(hwnd, 0, RAMEN_WINDOW_MARKER as usize);
             }
 
-            let hhook = SetWindowsHookExW(WH_CBT, hcbt_destroywnd_hookproc, ptr::null_mut(), GetCurrentThreadId());
+            // A guarantee of `Window` is that as long as you own it, the window remains open
+            // However, external requests can be made to destroy our window without asking us first
+            // `WM_DESTROY` is only sent after a lot of state has already been invalidated and you can't stop it
+            // The CBT (not what you think, "computer-based training") hooking APIs added a hook to tamper with this
+            // We attach a hooking procedure that rejects windows being destroyed until we set an internal flag
+            let cbt_hook = SetWindowsHookExW(WH_CBT, hcbt_destroywnd_hookproc, ptr::null_mut(), GetCurrentThreadId());
 
             // ...
 
-            UnhookWindowsHookEx(hhook);
+            let _ = UnhookWindowsHookEx(cbt_hook);
         });
 
         /* Wait for the thread to return the window or an error */
@@ -145,7 +150,6 @@ unsafe fn user_data<'a>(hwnd: HWND) -> &'a mut WindowImplUserData {
     &mut *(util::get_window_data(hwnd, 0) as *mut WindowImplUserData)
 }
 
-// TODO explain
 unsafe extern "system" fn hcbt_destroywnd_hookproc(code: c_int, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     if code == HCBT_DESTROYWND {
         let hwnd = wparam as HWND;
